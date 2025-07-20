@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Foosball Ranking Board</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        th:hover {
+            background-color: #45a049;
+        }
+        .arrow {
+            font-size: 0.8em;
+            margin-left: 5px;
+        }
+        .container {
+            max-width: 800px;
+            margin: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="2index.html">Link to functional page</a> <br/> <br/>
+        <h1>Foosball Ranking Board</h1>
+        <a href="index.html">Back to Default Settings (Average Points / Ratings High to Low)</a> <br/> <br/>
+        <a href="https://github.com/Larryzpl123/FOOSBALL-ELOSYSTEM">Code</a> <br/> <br/>
+        Ranks don't drop after reached <br/>
+        - <150: 1 - Iron ; - ≥150: 2 - Bronze ; - ≥200: 3 - Copper ; - ≥250: 4 - Silver <br/>
+        - ≥450: 5 - Gold ; - ≥850: 6 - Platinum ; - ≥1234: 7 - Jade <br/>
+        - ≥1650: 8 - Emerald ; - ≥2222: 9 - Diamond <br/>
+        - ≥2468: 10 - Master ; - ≥2900: 11 - Ultra <br/>
+        <table id="rankingTable">
+            <thead>
+                <tr>
+                    <th>No.</th>
+                    <th onclick="sortTable(1)">Name</th>
+                    <th onclick="sortTable(2)">Offense Points</th>
+                    <th onclick="sortTable(3)">Defense Points</th>
+                    <th onclick="sortTable(4)">Times Played</th>
+                    <th onclick="sortTable(5)">Win Rate (%)</th>
+                    <th onclick="sortTable(6)"><p style="color:darkred;">Average Points<p style="color:red"></th>
+                    <th onclick="sortTable(7)">Defense Rank</th>
+                    <th onclick="sortTable(8)">Offense Rank</th>
+                    <th onclick="sortTable(9)">Average Rank</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', loadData);
+
+        let currentSortColumn = null;
+        let sortOrder = 'asc';
+
+        function loadData() {
+            fetch('elo.txt')
+                .then(response => response.text())
+                .then(text => {
+                    const lines = text.trim().split('\n');
+                    const data = lines.map(line => line.split(',').map(item => item.trim()));
+                    renderTable(data);
+                })
+                .catch(error => console.error('Error loading data:', error));
+        }
+
+        function renderTable(data) {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+            data.forEach((row, index) => {
+                const tr = document.createElement('tr');
+                const noCell = document.createElement('td');
+                noCell.textContent = index + 1; // Display ranking number
+                tr.appendChild(noCell);
+                row.forEach(cell => {
+                    const td = document.createElement('td');
+                    td.textContent = cell;
+                    tr.appendChild(td);
+                });
+                tableBody.appendChild(tr);
+            });
+        }
+
+        function sortTable(columnIndex) {
+            const table = document.getElementById('rankingTable');
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            const isAscending = (currentSortColumn === columnIndex && sortOrder === 'asc');
+            currentSortColumn = columnIndex;
+            sortOrder = isAscending ? 'desc' : 'asc';
+
+            rows.sort((a, b) => {
+                const aText = a.children[columnIndex].textContent; // Corrected index
+                const bText = b.children[columnIndex].textContent; // Corrected index
+
+                let primarySort;
+                if (columnIndex === 1) {
+                    primarySort = aText.localeCompare(bText); // Alphabetical sorting for Name
+                } else {
+                    primarySort = isNaN(aText) || isNaN(bText) ? aText.localeCompare(bText) : parseFloat(aText) - parseFloat(bText);
+                }
+
+                if (primarySort === 0) {
+                    // Secondary sort by Average Points
+                    const avgA = parseFloat(a.children[6].textContent);
+                    const avgB = parseFloat(b.children[6].textContent);
+                    const secondarySort = avgA - avgB;
+
+                    if (secondarySort === 0) {
+                        // Tertiary sort by Name (if average points are the same)
+                        return a.children[1].textContent.localeCompare(b.children[1].textContent);
+                    }
+                    return secondarySort;
+                }
+                return primarySort;
+            });
+
+            if (sortOrder === 'desc') rows.reverse();
+
+            // Re-render with sorted data (excluding the No. column for data integrity)
+            renderTable(rows.map(row => Array.from(row.children).slice(1).map(cell => cell.textContent)));
+            updateSortArrows();
+        }
+
+        function updateSortArrows() {
+            const headers = document.querySelectorAll('th');
+            headers.forEach(header => {
+                header.innerHTML = header.innerHTML.replace(/&uarr;|&darr;/, '');
+            });
+            if (currentSortColumn !== null) {
+                const currentHeader = headers[currentSortColumn]; // Corrected index
+                currentHeader.innerHTML += sortOrder === 'asc' ? ' &uarr;' : ' &darr;';
+            }
+        }
+    </script>
+</body>
+</html>
